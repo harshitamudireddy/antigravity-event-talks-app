@@ -15,6 +15,9 @@ const errorState = document.getElementById('error-state');
 const errorMessage = document.getElementById('error-message');
 const retryBtn = document.getElementById('retry-btn');
 const emptyState = document.getElementById('empty-state');
+const resetFiltersBtn = document.getElementById('reset-filters-btn');
+const scrollTopBtn = document.getElementById('scroll-top-btn');
+const toastContainer = document.getElementById('toast-container');
 
 // Stats Elements
 const statTotal = document.getElementById('stat-total');
@@ -29,6 +32,7 @@ const charCounter = document.getElementById('char-counter');
 const tweetWarning = document.getElementById('tweet-warning');
 const closeTweetPanel = document.getElementById('close-tweet-panel');
 const resetTweetBtn = document.getElementById('reset-tweet-btn');
+const copyTweetBtn = document.getElementById('copy-tweet-btn');
 const shareTweetBtn = document.getElementById('share-tweet-btn');
 
 // Initialize Application
@@ -63,6 +67,9 @@ function setupEventListeners() {
         });
     });
 
+    // Reset filters in empty state
+    resetFiltersBtn.addEventListener('click', resetAllFilters);
+
     // Tweet panel closing
     closeTweetPanel.addEventListener('click', () => {
         tweetPanel.classList.add('hidden');
@@ -70,7 +77,7 @@ function setupEventListeners() {
         updateSelectedCardUI();
     });
 
-    // Clear draft
+    // Clear/Reset draft
     resetTweetBtn.addEventListener('click', () => {
         if (selectedNote) {
             tweetTextarea.value = formatTweet(
@@ -83,6 +90,29 @@ function setupEventListeners() {
             tweetTextarea.value = '';
         }
         updateCharCount();
+        showToast('Draft reset to default template', 'info');
+    });
+
+    // Copy draft to clipboard
+    copyTweetBtn.addEventListener('click', () => {
+        const text = tweetTextarea.value;
+        if (!text) return;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Draft copied to clipboard!', 'success');
+            // Quick visual feedback on button
+            const btnSpan = copyTweetBtn.querySelector('span');
+            const originalText = btnSpan.textContent;
+            btnSpan.textContent = 'Copied!';
+            copyTweetBtn.classList.add('btn-icon-active');
+            setTimeout(() => {
+                btnSpan.textContent = originalText;
+                copyTweetBtn.classList.remove('btn-icon-active');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            showToast('Failed to copy to clipboard', 'error');
+        });
     });
 
     // Tweet text change listener
@@ -93,7 +123,88 @@ function setupEventListeners() {
         const text = tweetTextarea.value;
         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
         window.open(twitterUrl, '_blank', 'width=550,height=420');
+        showToast('Launching X Share Intent...', 'info');
     });
+
+    // Scroll window listener for "Back to Top"
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 400) {
+            scrollTopBtn.classList.remove('hidden');
+        } else {
+            scrollTopBtn.classList.add('hidden');
+        }
+    });
+
+    // Click to scroll to top
+    scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // If '/' is pressed and user is not inside an input/textarea, focus search
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            searchInput.focus();
+            showToast('Press [Esc] to exit search', 'info');
+        }
+        
+        // If 'Esc' is pressed
+        if (e.key === 'Escape') {
+            if (document.activeElement === searchInput) {
+                searchInput.value = '';
+                searchQuery = '';
+                searchInput.blur();
+                renderFeed();
+            } else if (!tweetPanel.classList.contains('hidden')) {
+                closeTweetPanel.click();
+                showToast('Composer closed', 'info');
+            }
+        }
+    });
+}
+
+// Reset filters helper
+function resetAllFilters() {
+    searchInput.value = '';
+    searchQuery = '';
+    currentFilter = 'all';
+    
+    filterBadges.forEach(b => b.classList.remove('active'));
+    document.querySelector('.filter-badge[data-type="all"]').classList.add('active');
+    
+    renderFeed();
+    showToast('Filters reset successfully', 'success');
+}
+
+// Toast notification helper
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = '';
+    if (type === 'success') {
+        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-feature)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    } else if (type === 'error') {
+        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-breaking)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+    } else {
+        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="9" x2="12.01" y2="9"></line></svg>`;
+    }
+
+    toast.innerHTML = `
+        ${icon}
+        <span>${message}</span>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto remove toast
+    setTimeout(() => {
+        toast.classList.add('toast-fade-out');
+        toast.addEventListener('animationend', () => {
+            toast.remove();
+        });
+    }, 3000);
 }
 
 // Fetch BigQuery Release Notes API
@@ -120,12 +231,14 @@ async function fetchReleaseNotes() {
             lastRefreshedSpan.textContent = `Refreshed: ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
             
             hideLoading();
+            showToast(`Loaded ${data.count} release note entries`, 'success');
         } else {
             throw new Error(data.message || 'Unknown error occurred');
         }
     } catch (error) {
         console.error('Error fetching release notes:', error);
         showError(error.message);
+        showToast('Failed to fetch release notes feed', 'error');
     } finally {
         refreshBtn.classList.remove('loading');
         refreshBtn.disabled = false;
@@ -292,6 +405,7 @@ function selectNoteForTweet(note) {
     tweetPanel.classList.remove('hidden');
     updateCharCount();
     tweetTextarea.focus();
+    showToast('Composer loaded with selected update', 'info');
 }
 
 // Sync selection visual states on card components

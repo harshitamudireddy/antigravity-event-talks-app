@@ -125,6 +125,7 @@
                     </svg>
                     <h3>No Matching Updates</h3>
                     <p>Try adjusting your search terms or filters.</p>
+                    <button id="reset-filters-btn" class="btn btn-secondary">Reset Search & Filters</button>
                 </div>
 
                 <!-- Entries will be rendered dynamically here -->
@@ -153,6 +154,13 @@
             </div>
             <div class="tweet-panel-footer">
                 <button id="reset-tweet-btn" class="btn btn-secondary btn-sm">Clear</button>
+                <button id="copy-tweet-btn" class="btn btn-secondary btn-sm">
+                    <span>Copy Draft</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
                 <button id="share-tweet-btn" class="btn btn-primary btn-sm">
                     <span>Post to X</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -162,6 +170,16 @@
             </div>
         </div>
     </div>
+
+    <!-- Floating Back to Top Button -->
+    <button id="scroll-top-btn" class="scroll-top-btn hidden" aria-label="Scroll to top">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <!-- Floating Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
 
     <!-- Script Import -->
     <script src="{{ url_for('static', filename='main.js') }}"></script>

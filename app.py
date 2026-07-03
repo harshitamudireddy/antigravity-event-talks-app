@@ -25,6 +25,9 @@ def parse_html_content(html_content):
             note_type = parts[i].strip()
             content_html = parts[i+1].strip() if i+1 < len(parts) else ""
             
+            # Ensure all external links open in a new tab
+            content_html = re.sub(r'<a\s+(href=)', r'<a target="_blank" rel="noopener noreferrer" \1', content_html)
+            
             # Extract plain text for social sharing / tweeting
             # Remove HTML tags and clean up spacing
             plain_text = re.sub(r'<[^>]+>', '', content_html)
@@ -39,9 +42,13 @@ def parse_html_content(html_content):
         # Fallback if no <h3> tags found
         plain_text = re.sub(r'<[^>]+>', '', html_content)
         plain_text = re.sub(r'\s+', ' ', plain_text).strip()
+        
+        # Ensure all external links open in a new tab in fallback
+        html_content_modified = re.sub(r'<a\s+(href=)', r'<a target="_blank" rel="noopener noreferrer" \1', html_content)
+        
         sections.append({
             "type": "Update",
-            "content_html": html_content,
+            "content_html": html_content_modified,
             "plain_text": plain_text
         })
         
